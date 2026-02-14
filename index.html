@@ -6,11 +6,14 @@
     <title>GrammarFix - AI Writing Assistant</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="light-mode">
     <header>
-        <div class="container">
-            <h1>✍️ GrammarFix</h1>
-            <p class="tagline">Perfect your writing with AI-powered checks and text-to-speech</p>
+        <div class="container header-content">
+            <div class="logo-area">
+                <h1>✍️ GrammarFix</h1>
+                <p class="tagline">Perfect your writing with AI-powered checks</p>
+            </div>
+            <button id="themeToggle" class="btn-theme">🌙 Dark Mode</button>
         </div>
     </header>
 
@@ -32,7 +35,7 @@
 
             <div id="results" class="results-section" style="display: none;">
                 <h3>Grammar & Spelling Suggestions</h3>
-                <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">Click a suggestion to apply it to the final text.</p>
+                <p class="instruction-text">Click a suggestion to apply it to the final text.</p>
                 <div id="suggestionsList"></div>
             </div>
 
@@ -56,6 +59,10 @@
                 <div class="stat-card">
                     <span class="stat-label">Reading Time</span>
                     <span class="stat-value" id="readTime">0 min</span>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);">
+                    <span class="stat-label">Vocab Score</span>
+                    <span class="stat-value" id="vocabScore">0%</span>
                 </div>
             </div>
         </div>
