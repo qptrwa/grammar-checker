@@ -13,6 +13,7 @@ const vocabScore = document.getElementById('vocabScore');
 
 let currentMatches = []; 
 
+// Theme Toggle
 themeToggle.addEventListener('click', () => {
     document.body.classList.toggle('dark-mode');
     const isDark = document.body.classList.contains('dark-mode');
@@ -24,17 +25,13 @@ textInput.addEventListener('input', updateStats);
 function updateStats() {
     const text = textInput.value;
     const words = text.toLowerCase().match(/\b(\w+)\b/g) || [];
-    
     wordCount.textContent = words.length;
     charCount.textContent = text.length;
-    
     const sentences = text.split(/[.!?]+/).filter(sentence => sentence.trim().length > 0);
     sentenceCount.textContent = sentences.length;
-    
     const minutes = Math.ceil(words.length / 200);
     readTime.textContent = `${minutes} min`;
 
-    // VOCABULARY SCORE LOGIC
     if (words.length > 0) {
         const uniqueWords = new Set(words).size;
         const score = Math.round((uniqueWords / words.length) * 100);
@@ -47,7 +44,7 @@ function updateStats() {
 clearBtn.addEventListener('click', () => {
     textInput.value = '';
     results.style.display = 'none';
-    window.speechSynthesis.cancel();
+    window.speechSynthesis.cancel(); // Safety stop
     updateStats();
 });
 
@@ -59,6 +56,7 @@ async function checkGrammar() {
     
     loading.style.display = 'block';
     results.style.display = 'none';
+    window.speechSynthesis.cancel(); // Stop speech if starting new check
     
     try {
         const response = await fetch('https://api.languagetool.org/v2/check', {
@@ -126,9 +124,10 @@ function renderCorrectedSection(originalText) {
     correctedSection.className = 'corrected-section';
     correctedSection.innerHTML = `
         <h3>✨ Final Result</h3>
-        <div id="finalText" style="white-space: pre-wrap; margin: 10px 0; line-height: 1.6;">${correctedText}</div>
+        <div id="finalText" style="white-space: pre-wrap; margin: 10px 0; line-height: 1.6; color: var(--text-main);">${correctedText}</div>
         <div class="action-buttons">
             <button id="speakBtn" class="btn-speak">🔊 Read Aloud</button>
+            <button id="stopBtn" class="btn-stop">⏹ Stop</button>
             <button id="copyBtn" class="btn-copy">📋 Copy Text</button>
         </div>
     `;
@@ -137,6 +136,7 @@ function renderCorrectedSection(originalText) {
     document.getElementById('copyBtn').addEventListener('click', () => {
         navigator.clipboard.writeText(correctedText);
         document.getElementById('copyBtn').textContent = '✓ Copied!';
+        setTimeout(() => document.getElementById('copyBtn').textContent = '📋 Copy Text', 2000);
     });
 
     document.getElementById('speakBtn').addEventListener('click', () => {
@@ -144,6 +144,11 @@ function renderCorrectedSection(originalText) {
         const utterance = new SpeechSynthesisUtterance(correctedText);
         utterance.rate = 0.9;
         window.speechSynthesis.speak(utterance);
+    });
+
+    // NEW STOP BUTTON LOGIC
+    document.getElementById('stopBtn').addEventListener('click', () => {
+        window.speechSynthesis.cancel();
     });
 }
 
