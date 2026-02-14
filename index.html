@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GrammarFix - AI Grammar Checker</title>
+    <title>GrammarFix - AI Writing Assistant</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header>
         <div class="container">
             <h1>✍️ GrammarFix</h1>
-            <p class="tagline">Perfect your writing with AI-powered grammar checking</p>
+            <p class="tagline">Perfect your writing with AI-powered checks and text-to-speech</p>
         </div>
     </header>
 
     <main class="container">
         <div class="editor-section">
             <div class="toolbar">
-                <button id="checkBtn" class="btn-primary">Check Grammar</button>
+                <button id="checkBtn" class="btn-primary">Check Text</button>
                 <button id="clearBtn" class="btn-secondary">Clear</button>
                 <span class="word-count">Words: <span id="wordCount">0</span></span>
             </div>
@@ -31,13 +31,14 @@
             </div>
 
             <div id="results" class="results-section" style="display: none;">
-                <h3>Grammar Suggestions</h3>
+                <h3>Grammar & Spelling Suggestions</h3>
+                <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">Click a suggestion to apply it to the final text.</p>
                 <div id="suggestionsList"></div>
             </div>
 
             <div id="loading" class="loading" style="display: none;">
                 <div class="spinner"></div>
-                <p>Checking your grammar...</p>
+                <p>Analyzing your text...</p>
             </div>
         </div>
 
