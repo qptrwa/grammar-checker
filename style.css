@@ -1,165 +1,130 @@
-/* All previous styles remain, adding the Speak button and layout tweaks */
+:root {
+    --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --card-bg: white;
+    --text-main: #333;
+    --text-muted: #666;
+    --border-color: #e0e0e0;
+    --input-bg: white;
+    --suggestion-bg: #f8f9fa;
+    --chip-bg: #e8f0fe;
+}
+
+body.dark-mode {
+    --bg-gradient: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    --card-bg: #1e1e2d;
+    --text-main: #e0e0e0;
+    --text-muted: #b0b0b0;
+    --border-color: #3f3f5a;
+    --input-bg: #2a2a3d;
+    --suggestion-bg: #252538;
+    --chip-bg: #2d3436;
+}
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    transition: background-color 0.3s, color 0.3s;
 }
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--bg-gradient);
     min-height: 100vh;
     padding: 20px;
+    color: var(--text-main);
 }
 
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-}
+.container { max-width: 1200px; margin: 0 auto; }
 
-header {
-    text-align: center;
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     color: white;
     margin-bottom: 40px;
 }
 
-header h1 {
-    font-size: 3em;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-main {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 20px;
-}
-
-.editor-section {
-    background: white;
-    border-radius: 15px;
-    padding: 30px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-}
-
-.toolbar {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.btn-primary, .btn-secondary {
-    padding: 12px 25px;
-    border: none;
-    border-radius: 8px;
+.btn-theme {
+    padding: 10px 20px;
+    border-radius: 20px;
+    border: 1px solid white;
+    background: transparent;
+    color: white;
     cursor: pointer;
     font-weight: 600;
 }
 
-.btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+main { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+
+.editor-section, .stats-section {
+    background: var(--card-bg);
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
 #textInput {
     width: 100%;
     min-height: 400px;
     padding: 20px;
-    border: 2px solid #e0e0e0;
+    background: var(--input-bg);
+    color: var(--text-main);
+    border: 2px solid var(--border-color);
     border-radius: 10px;
     font-size: 16px;
     line-height: 1.6;
+    resize: vertical;
 }
 
 .suggestion-item {
-    background: white;
+    background: var(--card-bg);
     padding: 15px;
     margin-bottom: 15px;
     border-radius: 8px;
+    border: 1px solid var(--border-color);
     border-left: 4px solid #667eea;
-}
-
-.replacement-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 10px;
 }
 
 .chip {
     padding: 6px 14px;
-    background: #e8f0fe;
+    background: var(--chip-bg);
     color: #1a73e8;
     border: 1px solid #1a73e8;
     border-radius: 20px;
-    font-size: 14px;
     cursor: pointer;
+    margin-right: 5px;
 }
 
-.chip.selected {
-    background: #00b894;
-    color: white;
-    border-color: #00b894;
-}
-
-.stats-section {
-    background: white;
-    border-radius: 15px;
-    padding: 30px;
-}
+.chip.selected { background: #00b894; color: white; border-color: #00b894; }
 
 .stat-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(5px);
     padding: 15px;
     border-radius: 10px;
-    color: white;
+    margin-bottom: 10px;
     display: flex;
     justify-content: space-between;
-    margin-bottom: 10px;
+    align-items: center;
 }
+
+.stat-label { font-size: 0.9em; opacity: 0.9; }
+.stat-value { font-weight: bold; font-size: 1.2em; }
 
 .corrected-section {
     margin-top: 25px;
     padding: 20px;
-    background: #fdfdfd;
+    background: var(--suggestion-bg);
     border: 2px solid #667eea;
     border-radius: 10px;
 }
 
-/* BUTTONS GROUP IN CORRECTED SECTION */
-.action-buttons {
-    display: flex;
-    gap: 10px;
-}
+.action-buttons { display: flex; gap: 10px; margin-top: 15px; }
 
-.btn-copy, .btn-speak {
-    flex: 1;
-    padding: 12px;
-    border: none;
-    border-radius: 8px;
-    font-weight: bold;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: 0.3s;
-}
+.btn-primary { background: #667eea; color: white; padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; }
+.btn-secondary { background: var(--border-color); color: var(--text-main); padding: 12px 25px; border: none; border-radius: 8px; cursor: pointer; }
+.btn-speak { background: #ff7675; color: white; border: none; padding: 12px; border-radius: 8px; flex: 1; cursor: pointer; }
+.btn-copy { background: #667eea; color: white; border: none; padding: 12px; border-radius: 8px; flex: 1; cursor: pointer; }
 
-.btn-copy {
-    background: #667eea;
-    color: white;
-}
-
-.btn-speak {
-    background: #ff7675;
-    color: white;
-}
-
-.btn-speak:hover {
-    background: #d63031;
-}
-
-@media (max-width: 968px) {
-    main { grid-template-columns: 1fr; }
-}
+@media (max-width: 968px) { main { grid-template-columns: 1fr; } }
