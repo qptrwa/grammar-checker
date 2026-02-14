@@ -1,6 +1,7 @@
 const textInput = document.getElementById('textInput');
 const checkBtn = document.getElementById('checkBtn');
 const clearBtn = document.getElementById('clearBtn');
+const themeToggle = document.getElementById('themeToggle');
 const results = document.getElementById('results');
 const suggestionsList = document.getElementById('suggestionsList');
 const loading = document.getElementById('loading');
@@ -8,26 +9,45 @@ const wordCount = document.getElementById('wordCount');
 const charCount = document.getElementById('charCount');
 const sentenceCount = document.getElementById('sentenceCount');
 const readTime = document.getElementById('readTime');
+const vocabScore = document.getElementById('vocabScore');
 
 let currentMatches = []; 
+
+themeToggle.addEventListener('click', () => {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    themeToggle.textContent = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+});
 
 textInput.addEventListener('input', updateStats);
 
 function updateStats() {
     const text = textInput.value;
-    const words = text.trim().split(/\s+/).filter(word => word.length > 0);
+    const words = text.toLowerCase().match(/\b(\w+)\b/g) || [];
+    
     wordCount.textContent = words.length;
     charCount.textContent = text.length;
+    
     const sentences = text.split(/[.!?]+/).filter(sentence => sentence.trim().length > 0);
     sentenceCount.textContent = sentences.length;
+    
     const minutes = Math.ceil(words.length / 200);
     readTime.textContent = `${minutes} min`;
+
+    // VOCABULARY SCORE LOGIC
+    if (words.length > 0) {
+        const uniqueWords = new Set(words).size;
+        const score = Math.round((uniqueWords / words.length) * 100);
+        vocabScore.textContent = `${score}%`;
+    } else {
+        vocabScore.textContent = '0%';
+    }
 }
 
 clearBtn.addEventListener('click', () => {
     textInput.value = '';
     results.style.display = 'none';
-    window.speechSynthesis.cancel(); // Stop speaking if clearing
+    window.speechSynthesis.cancel();
     updateStats();
 });
 
@@ -48,7 +68,6 @@ async function checkGrammar() {
         });
         const data = await response.json();
         
-        // Save matches and auto-select the first suggestion
         currentMatches = data.matches.map(match => ({
             ...match,
             chosenReplacement: match.replacements.length > 0 ? match.replacements[0].value : null
@@ -56,7 +75,7 @@ async function checkGrammar() {
         
         displayResults(text);
     } catch (error) {
-        alert('API Error. Please check your connection.');
+        alert('Check failed. Try again later.');
     } finally {
         loading.style.display = 'none';
     }
@@ -66,7 +85,7 @@ function displayResults(originalText) {
     suggestionsList.innerHTML = '';
     
     if (currentMatches.length === 0) {
-        suggestionsList.innerHTML = '<p style="color: #00b894; font-weight: 600;">✓ Perfect! No errors found.</p>';
+        suggestionsList.innerHTML = '<p style="color: #00b894; font-weight: 600;">✓ Looking good! No errors.</p>';
     } else {
         currentMatches.forEach((match, index) => {
             const suggestionItem = document.createElement('div');
@@ -85,8 +104,8 @@ function displayResults(originalText) {
             }
 
             suggestionItem.innerHTML = `
-                <span class="suggestion-type">${match.rule.issueType.toUpperCase()}</span>
-                <p><strong>Issue:</strong> ${match.message}</p>
+                <span class="suggestion-type" style="color:#667eea; font-weight:bold;">${match.rule.issueType.toUpperCase()}</span>
+                <p style="margin: 5px 0;"><strong>Issue:</strong> ${match.message}</p>
                 ${chipsHtml}
             `;
             suggestionsList.appendChild(suggestionItem);
@@ -107,7 +126,7 @@ function renderCorrectedSection(originalText) {
     correctedSection.className = 'corrected-section';
     correctedSection.innerHTML = `
         <h3>✨ Final Result</h3>
-        <div class="corrected-text-box" id="finalText">${correctedText}</div>
+        <div id="finalText" style="white-space: pre-wrap; margin: 10px 0; line-height: 1.6;">${correctedText}</div>
         <div class="action-buttons">
             <button id="speakBtn" class="btn-speak">🔊 Read Aloud</button>
             <button id="copyBtn" class="btn-copy">📋 Copy Text</button>
@@ -121,16 +140,11 @@ function renderCorrectedSection(originalText) {
     });
 
     document.getElementById('speakBtn').addEventListener('click', () => {
-        readAloud(correctedText);
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(correctedText);
+        utterance.rate = 0.9;
+        window.speechSynthesis.speak(utterance);
     });
-}
-
-function readAloud(text) {
-    window.speechSynthesis.cancel(); // Stop any current speech
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.9; // Slightly slower for better clarity
-    utterance.pitch = 1;
-    window.speechSynthesis.speak(utterance);
 }
 
 function applySuggestions(text, matches) {
