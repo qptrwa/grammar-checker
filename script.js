@@ -106,7 +106,7 @@ async function checkGrammar() {
         
         currentMatches = data.matches.map(match => ({
             ...match,
-            chosenReplacement: match.replacements.length > 0 ? match.replacements[0].value : null
+            chosenReplacement: null
         }));
         
         displayResults(text);
@@ -131,8 +131,8 @@ function displayResults(originalText) {
             let chipsHtml = '';
             if (match.replacements.length > 0) {
                 chipsHtml = '<div class="replacement-chips">';
-                match.replacements.slice(0, 5).forEach(rep => {
-                    const isSelected = rep.value === match.chosenReplacement;
+                match.replacements.slice(0, 5).forEach((rep, idx) => {
+                    const isSelected = (match.chosenReplacement === rep.value) || (!match.chosenReplacement && idx === 0);
                     chipsHtml += `<span class="chip ${isSelected ? 'selected' : ''}" 
                                   onclick="selectReplacement(${index}, '${rep.value.replace(/'/g, "\\'")}')">
                                   ${rep.value}</span>`;
@@ -158,42 +158,88 @@ function selectReplacement(index, val) {
 }
 
 function renderCorrectedSection(originalText) {
-    const correctedText = applySuggestions(originalText, currentMatches);
+    const hasSecondOption = currentMatches.some(m => m.replacements.length > 1);
+
+    const option1Text = applySuggestions(originalText, currentMatches, 0);
+    const option2Text = hasSecondOption ? applySuggestions(originalText, currentMatches, 1) : "";
+
+    let summaryHtml = `
+        <div class="summary-section">
+            <h3>📝 Fix Summary</h3>
+            <ul class="summary-list">
+    `;
+
+    currentMatches.forEach(m => {
+        const original = originalText.substring(m.offset, m.offset + m.length);
+        const corrected = m.chosenReplacement || (m.replacements.length > 0 ? m.replacements[0].value : "(removed)");
+        summaryHtml += `
+            <li class="summary-item">
+                <span class="original-text">${original}</span>
+                <span class="arrow">→</span>
+                <span class="corrected-text">${corrected}</span>
+            </li>`;
+    });
+    summaryHtml += `</ul></div>`;
+
     const correctedSection = document.createElement('div');
     correctedSection.className = 'corrected-section';
     correctedSection.innerHTML = `
-        <h3>✨ Final Result</h3>
-        <div id="finalText" style="white-space: pre-wrap; margin: 10px 0; line-height: 1.6; color: var(--text-main);">${correctedText}</div>
-        <div class="action-buttons">
-            <button id="speakBtn" class="btn-speak">🔊 Read Aloud</button>
+        <div class="options-grid">
+            <div class="option-box">
+                <h3>✨ Option 1</h3>
+                <div class="finalText" style="white-space: pre-wrap; margin: 10px 0; line-height: 1.6; color: var(--text-main);">${option1Text}</div>
+                <div class="action-buttons">
+                    <button id="copyBtn1" class="btn-copy">📋 Copy Option 1</button>
+                </div>
+            </div>
+            ${hasSecondOption ? `
+            <div class="option-box">
+                <h3>✨ Option 2</h3>
+                <div class="finalText" style="white-space: pre-wrap; margin: 10px 0; line-height: 1.6; color: var(--text-main);">${option2Text}</div>
+                <div class="action-buttons">
+                    <button id="copyBtn2" class="btn-copy">📋 Copy Option 2</button>
+                </div>
+            </div>` : ''}
+        </div>
+
+        <div class="action-buttons secondary-actions">
+            <button id="speakBtn" class="btn-speak">🔊 Read Aloud (Opt 1)</button>
             <button id="stopBtn" class="btn-stop">⏹ Stop</button>
-            <button id="copyBtn" class="btn-copy">📋 Copy Text</button>
             <button id="downloadBtn" class="btn-download">💾 Download .txt</button>
         </div>
+        ${summaryHtml}
     `;
     suggestionsList.appendChild(correctedSection);
 
-    document.getElementById('copyBtn').addEventListener('click', () => {
-        navigator.clipboard.writeText(correctedText);
-        document.getElementById('copyBtn').textContent = '✓ Copied!';
-        setTimeout(() => document.getElementById('copyBtn').textContent = '📋 Copy Text', 2000);
+    document.getElementById('copyBtn1').addEventListener('click', () => {
+        navigator.clipboard.writeText(option1Text);
+        document.getElementById('copyBtn1').textContent = '✓ Copied!';
+        setTimeout(() => document.getElementById('copyBtn1').textContent = '📋 Copy Option 1', 2000);
     });
+
+    if (hasSecondOption) {
+        document.getElementById('copyBtn2').addEventListener('click', () => {
+            navigator.clipboard.writeText(option2Text);
+            document.getElementById('copyBtn2').textContent = '✓ Copied!';
+            setTimeout(() => document.getElementById('copyBtn2').textContent = '📋 Copy Option 2', 2000);
+        });
+    }
 
     document.getElementById('speakBtn').addEventListener('click', () => {
         window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(correctedText);
+        const utterance = new SpeechSynthesisUtterance(option1Text);
         utterance.rate = 0.9;
         window.speechSynthesis.speak(utterance);
     });
 
-    // NEW STOP BUTTON LOGIC
     document.getElementById('stopBtn').addEventListener('click', () => {
         window.speechSynthesis.cancel();
     });
 
     document.getElementById('downloadBtn').addEventListener('click', () => {
         const element = document.createElement('a');
-        const file = new Blob([correctedText], {type: 'text/plain'});
+        const content = `OPTION 1:\n${option1Text}\n\n${hasSecondOption ? `OPTION 2:\n${option2Text}\n\n` : ''}SUMMARY:\n${currentMatches.map(m => `${originalText.substring(m.offset, m.offset + m.length)} -> ${m.chosenReplacement || (m.replacements.length > 0 ? m.replacements[0].value : "(removed)")}`).join('\n')}`;
+        const file = new Blob([content], {type: 'text/plain'});
         element.href = URL.createObjectURL(file);
         element.download = 'corrected_text.txt';
         document.body.appendChild(element);
@@ -202,12 +248,20 @@ function renderCorrectedSection(originalText) {
     });
 }
 
-function applySuggestions(text, matches) {
+function applySuggestions(text, matches, replacementIndex = 0) {
     let result = text;
     const sorted = [...matches].sort((a, b) => b.offset - a.offset);
     sorted.forEach(m => {
-        if (m.chosenReplacement !== null) {
-            result = result.substring(0, m.offset) + m.chosenReplacement + result.substring(m.offset + m.length);
+        let replacement = m.chosenReplacement;
+
+        // If no manual choice, use the replacement at the specified index
+        if (replacement === null && m.replacements && m.replacements.length > 0) {
+            const idx = (replacementIndex < m.replacements.length) ? replacementIndex : 0;
+            replacement = m.replacements[idx].value;
+        }
+
+        if (replacement !== null) {
+            result = result.substring(0, m.offset) + replacement + result.substring(m.offset + m.length);
         }
     });
     return result;
