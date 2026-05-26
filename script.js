@@ -121,30 +121,46 @@ function displayResults(originalText) {
     suggestionsList.innerHTML = '';
     
     if (currentMatches.length === 0) {
-        suggestionsList.innerHTML = '<p style="color: #00b894; font-weight: 600;">✓ Looking good! No errors.</p>';
+        const noErrors = document.createElement('p');
+        noErrors.style.color = '#00b894';
+        noErrors.style.fontWeight = '600';
+        noErrors.textContent = '✓ Looking good! No errors.';
+        suggestionsList.appendChild(noErrors);
     } else {
         currentMatches.forEach((match, index) => {
             const suggestionItem = document.createElement('div');
             const type = match.rule.issueType || 'other';
             suggestionItem.className = `suggestion-item ${type}`;
+
+            const typeSpan = document.createElement('span');
+            typeSpan.className = 'suggestion-type';
+            typeSpan.style.color = '#667eea';
+            typeSpan.style.fontWeight = 'bold';
+            typeSpan.textContent = (match.rule.issueType || 'suggestion').toUpperCase();
+            suggestionItem.appendChild(typeSpan);
+
+            const issuePara = document.createElement('p');
+            issuePara.style.margin = '5px 0';
+            const issueStrong = document.createElement('strong');
+            issueStrong.textContent = 'Issue: ';
+            issuePara.appendChild(issueStrong);
+            issuePara.appendChild(document.createTextNode(match.message));
+            suggestionItem.appendChild(issuePara);
             
-            let chipsHtml = '';
             if (match.replacements.length > 0) {
-                chipsHtml = '<div class="replacement-chips">';
+                const chipsDiv = document.createElement('div');
+                chipsDiv.className = 'replacement-chips';
                 match.replacements.slice(0, 5).forEach((rep, idx) => {
                     const isSelected = (match.chosenReplacement === rep.value) || (!match.chosenReplacement && idx === 0);
-                    chipsHtml += `<span class="chip ${isSelected ? 'selected' : ''}" 
-                                  onclick="selectReplacement(${index}, '${rep.value.replace(/'/g, "\\'")}')">
-                                  ${rep.value}</span>`;
+                    const chip = document.createElement('span');
+                    chip.className = `chip ${isSelected ? 'selected' : ''}`;
+                    chip.textContent = rep.value;
+                    chip.addEventListener('click', () => selectReplacement(index, rep.value));
+                    chipsDiv.appendChild(chip);
                 });
-                chipsHtml += '</div>';
+                suggestionItem.appendChild(chipsDiv);
             }
 
-            suggestionItem.innerHTML = `
-                <span class="suggestion-type" style="color:#667eea; font-weight:bold;">${(match.rule.issueType || 'suggestion').toUpperCase()}</span>
-                <p style="margin: 5px 0;"><strong>Issue:</strong> ${match.message}</p>
-                ${chipsHtml}
-            `;
             suggestionsList.appendChild(suggestionItem);
         });
         renderCorrectedSection(originalText);
@@ -163,80 +179,108 @@ function renderCorrectedSection(originalText) {
     const option1Text = applySuggestions(originalText, currentMatches, 0);
     const option2Text = hasSecondOption ? applySuggestions(originalText, currentMatches, 1) : "";
 
-    let summaryHtml = `
-        <div class="summary-section">
-            <h3>📝 Fix Summary</h3>
-            <ul class="summary-list">
-    `;
-
-    currentMatches.forEach(m => {
-        const original = originalText.substring(m.offset, m.offset + m.length);
-        const corrected = m.chosenReplacement || (m.replacements.length > 0 ? m.replacements[0].value : "(removed)");
-        summaryHtml += `
-            <li class="summary-item">
-                <span class="original-text">${original}</span>
-                <span class="arrow">→</span>
-                <span class="corrected-text">${corrected}</span>
-            </li>`;
-    });
-    summaryHtml += `</ul></div>`;
-
     const correctedSection = document.createElement('div');
     correctedSection.className = 'corrected-section';
-    correctedSection.innerHTML = `
-        <div class="options-grid">
-            <div class="option-box">
-                <h3>✨ Option 1</h3>
-                <div class="finalText" style="white-space: pre-wrap; margin: 10px 0; line-height: 1.6; color: var(--text-main);">${option1Text}</div>
-                <div class="action-buttons">
-                    <button id="copyBtn1" class="btn-copy">📋 Copy Option 1</button>
-                </div>
-            </div>
-            ${hasSecondOption ? `
-            <div class="option-box">
-                <h3>✨ Option 2</h3>
-                <div class="finalText" style="white-space: pre-wrap; margin: 10px 0; line-height: 1.6; color: var(--text-main);">${option2Text}</div>
-                <div class="action-buttons">
-                    <button id="copyBtn2" class="btn-copy">📋 Copy Option 2</button>
-                </div>
-            </div>` : ''}
-        </div>
 
-        <div class="action-buttons secondary-actions">
-            <button id="speakBtn" class="btn-speak">🔊 Read Aloud (Opt 1)</button>
-            <button id="stopBtn" class="btn-stop">⏹ Stop</button>
-            <button id="downloadBtn" class="btn-download">💾 Download .txt</button>
-        </div>
-        ${summaryHtml}
-    `;
-    suggestionsList.appendChild(correctedSection);
+    const optionsGrid = document.createElement('div');
+    optionsGrid.className = 'options-grid';
 
-    document.getElementById('copyBtn1').addEventListener('click', () => {
+    // Option 1
+    const opt1Box = document.createElement('div');
+    opt1Box.className = 'option-box';
+    const opt1Title = document.createElement('h3');
+    opt1Title.textContent = '✨ Option 1';
+    opt1Box.appendChild(opt1Title);
+
+    const opt1TextDiv = document.createElement('div');
+    opt1TextDiv.className = 'finalText';
+    opt1TextDiv.style.whiteSpace = 'pre-wrap';
+    opt1TextDiv.style.margin = '10px 0';
+    opt1TextDiv.style.lineHeight = '1.6';
+    opt1TextDiv.style.color = 'var(--text-main)';
+    opt1TextDiv.textContent = option1Text;
+    opt1Box.appendChild(opt1TextDiv);
+
+    const opt1Actions = document.createElement('div');
+    opt1Actions.className = 'action-buttons';
+    const copyBtn1 = document.createElement('button');
+    copyBtn1.id = 'copyBtn1';
+    copyBtn1.className = 'btn-copy';
+    copyBtn1.textContent = '📋 Copy Option 1';
+    copyBtn1.addEventListener('click', () => {
         navigator.clipboard.writeText(option1Text);
-        document.getElementById('copyBtn1').textContent = '✓ Copied!';
-        setTimeout(() => document.getElementById('copyBtn1').textContent = '📋 Copy Option 1', 2000);
+        copyBtn1.textContent = '✓ Copied!';
+        setTimeout(() => copyBtn1.textContent = '📋 Copy Option 1', 2000);
     });
+    opt1Actions.appendChild(copyBtn1);
+    opt1Box.appendChild(opt1Actions);
+    optionsGrid.appendChild(opt1Box);
 
+    // Option 2
     if (hasSecondOption) {
-        document.getElementById('copyBtn2').addEventListener('click', () => {
+        const opt2Box = document.createElement('div');
+        opt2Box.className = 'option-box';
+        const opt2Title = document.createElement('h3');
+        opt2Title.textContent = '✨ Option 2';
+        opt2Box.appendChild(opt2Title);
+
+        const opt2TextDiv = document.createElement('div');
+        opt2TextDiv.className = 'finalText';
+        opt2TextDiv.style.whiteSpace = 'pre-wrap';
+        opt2TextDiv.style.margin = '10px 0';
+        opt2TextDiv.style.lineHeight = '1.6';
+        opt2TextDiv.style.color = 'var(--text-main)';
+        opt2TextDiv.textContent = option2Text;
+        opt2Box.appendChild(opt2TextDiv);
+
+        const opt2Actions = document.createElement('div');
+        opt2Actions.className = 'action-buttons';
+        const copyBtn2 = document.createElement('button');
+        copyBtn2.id = 'copyBtn2';
+        copyBtn2.className = 'btn-copy';
+        copyBtn2.textContent = '📋 Copy Option 2';
+        copyBtn2.addEventListener('click', () => {
             navigator.clipboard.writeText(option2Text);
-            document.getElementById('copyBtn2').textContent = '✓ Copied!';
-            setTimeout(() => document.getElementById('copyBtn2').textContent = '📋 Copy Option 2', 2000);
+            copyBtn2.textContent = '✓ Copied!';
+            setTimeout(() => copyBtn2.textContent = '📋 Copy Option 2', 2000);
         });
+        opt2Actions.appendChild(copyBtn2);
+        opt2Box.appendChild(opt2Actions);
+        optionsGrid.appendChild(opt2Box);
     }
 
-    document.getElementById('speakBtn').addEventListener('click', () => {
+    correctedSection.appendChild(optionsGrid);
+
+    // Secondary Actions
+    const secondaryActions = document.createElement('div');
+    secondaryActions.className = 'action-buttons secondary-actions';
+
+    const speakBtn = document.createElement('button');
+    speakBtn.id = 'speakBtn';
+    speakBtn.className = 'btn-speak';
+    speakBtn.textContent = '🔊 Read Aloud (Opt 1)';
+    speakBtn.addEventListener('click', () => {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(option1Text);
         utterance.rate = 0.9;
         window.speechSynthesis.speak(utterance);
     });
+    secondaryActions.appendChild(speakBtn);
 
-    document.getElementById('stopBtn').addEventListener('click', () => {
+    const stopBtn = document.createElement('button');
+    stopBtn.id = 'stopBtn';
+    stopBtn.className = 'btn-stop';
+    stopBtn.textContent = '⏹ Stop';
+    stopBtn.addEventListener('click', () => {
         window.speechSynthesis.cancel();
     });
+    secondaryActions.appendChild(stopBtn);
 
-    document.getElementById('downloadBtn').addEventListener('click', () => {
+    const downloadBtn = document.createElement('button');
+    downloadBtn.id = 'downloadBtn';
+    downloadBtn.className = 'btn-download';
+    downloadBtn.textContent = '💾 Download .txt';
+    downloadBtn.addEventListener('click', () => {
         const element = document.createElement('a');
         const content = `OPTION 1:\n${option1Text}\n\n${hasSecondOption ? `OPTION 2:\n${option2Text}\n\n` : ''}SUMMARY:\n${currentMatches.map(m => `${originalText.substring(m.offset, m.offset + m.length)} -> ${m.chosenReplacement || (m.replacements.length > 0 ? m.replacements[0].value : "(removed)")}`).join('\n')}`;
         const file = new Blob([content], {type: 'text/plain'});
@@ -246,6 +290,50 @@ function renderCorrectedSection(originalText) {
         element.click();
         document.body.removeChild(element);
     });
+    secondaryActions.appendChild(downloadBtn);
+
+    correctedSection.appendChild(secondaryActions);
+
+    // Summary
+    const summarySection = document.createElement('div');
+    summarySection.className = 'summary-section';
+    const summaryTitle = document.createElement('h3');
+    summaryTitle.textContent = '📝 Fix Summary';
+    summarySection.appendChild(summaryTitle);
+
+    const summaryList = document.createElement('ul');
+    summaryList.className = 'summary-list';
+
+    currentMatches.forEach(m => {
+        const original = originalText.substring(m.offset, m.offset + m.length);
+        const corrected = m.chosenReplacement || (m.replacements.length > 0 ? m.replacements[0].value : "(removed)");
+
+        const summaryItem = document.createElement('li');
+        summaryItem.className = 'summary-item';
+
+        const originalSpan = document.createElement('span');
+        originalSpan.className = 'original-text';
+        originalSpan.textContent = original;
+
+        const arrowSpan = document.createElement('span');
+        arrowSpan.className = 'arrow';
+        arrowSpan.textContent = '→';
+
+        const correctedSpan = document.createElement('span');
+        correctedSpan.className = 'corrected-text';
+        correctedSpan.textContent = corrected;
+
+        summaryItem.appendChild(originalSpan);
+        summaryItem.appendChild(document.createTextNode(' '));
+        summaryItem.appendChild(arrowSpan);
+        summaryItem.appendChild(document.createTextNode(' '));
+        summaryItem.appendChild(correctedSpan);
+        summaryList.appendChild(summaryItem);
+    });
+    summarySection.appendChild(summaryList);
+    correctedSection.appendChild(summarySection);
+
+    suggestionsList.appendChild(correctedSection);
 }
 
 function applySuggestions(text, matches, replacementIndex = 0) {
