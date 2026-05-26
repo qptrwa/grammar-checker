@@ -22,6 +22,17 @@
             <div class="toolbar">
                 <button id="checkBtn" class="btn-primary">Check Text</button>
                 <button id="clearBtn" class="btn-secondary">Clear</button>
+                <button id="copyInputBtn" class="btn-secondary">Copy</button>
+                <select id="languageSelect" class="select-input">
+                    <option value="en-US">English (US)</option>
+                    <option value="en-GB">English (UK)</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                </select>
+                <label class="auto-check-label">
+                    <input type="checkbox" id="autoCheck"> Auto-check
+                </label>
                 <span class="word-count">Words: <span id="wordCount">0</span></span>
             </div>
 
@@ -63,6 +74,10 @@
                 <div class="stat-card" style="background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);">
                     <span class="stat-label">Vocab Score</span>
                     <span class="stat-value" id="vocabScore">0%</span>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);">
+                    <span class="stat-label">Readability</span>
+                    <span class="stat-value" id="readabilityScore">0</span>
                 </div>
             </div>
         </div>
