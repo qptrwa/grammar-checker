@@ -109,6 +109,7 @@ main { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
 .suggestion-item.spelling, .suggestion-item.misspelling { border-left-color: #ff7675; }
 .suggestion-item.grammar { border-left-color: #f1c40f; }
 .suggestion-item.style, .suggestion-item.typographical { border-left-color: #6c5ce7; }
+.suggestion-item.vocabulary { border-left-color: #e67e22; }
 
 .chip {
     padding: 6px 14px;
@@ -139,6 +140,10 @@ main { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.stat-card-warning {
+    background: linear-gradient(135deg, #ff7675 0%, #d63031 100%) !important;
 }
 
 .stat-value { font-weight: bold; font-size: 1.2em; }

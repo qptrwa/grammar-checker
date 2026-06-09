@@ -15,8 +15,75 @@ const readTime = document.getElementById('readTime');
 const vocabScore = document.getElementById('vocabScore');
 const readabilityScore = document.getElementById('readabilityScore');
 
+const STOP_WORDS = new Set([
+    'the', 'a', 'an', 'and', 'or', 'but', 'if', 'because', 'as', 'until', 'while',
+    'of', 'at', 'by', 'for', 'with', 'about', 'against', 'between', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'to', 'from', 'up', 'down', 'in', 'out', 'on', 'off', 'over', 'under', 'again', 'further', 'then', 'once',
+    'here', 'there', 'when', 'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 's', 't', 'can', 'will', 'just', 'don', 'should', 'now',
+    'i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you', "you're", "you've", "you'll", "you'd", 'your', 'yours', 'yourself', 'yourselves', 'he', 'him', 'his', 'himself', 'she', "she's", 'her', 'hers', 'herself', 'it', "it's", 'its', 'itself', 'they', 'them', 'their', 'theirs', 'themselves', 'what', 'which', 'who', 'whom', 'this', 'that', "that'll", 'these', 'those', 'am', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing'
+]);
+
 let currentMatches = []; 
 let debounceTimer;
+
+function calculateVocabScore(text) {
+    const words = text.toLowerCase().match(/\b(\w+)\b/g) || [];
+    if (words.length === 0) return 0;
+    const uniqueWords = new Set(words).size;
+    return Math.round((uniqueWords / words.length) * 100);
+}
+
+async function getVocabImprovements(text) {
+    const words = text.toLowerCase().match(/\b(\w+)\b/g) || [];
+    const wordCounts = {};
+    words.forEach(w => {
+        if (!STOP_WORDS.has(w) && w.length > 2) {
+            wordCounts[w] = (wordCounts[w] || 0) + 1;
+        }
+    });
+
+    const repeatedWords = Object.entries(wordCounts)
+        .filter(([word, count]) => count > 1)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([word]) => word);
+
+    const vocabMatches = [];
+    for (const word of repeatedWords) {
+        try {
+            const response = await fetch(`https://api.datamuse.com/words?rel_syn=${word}`);
+            const data = await response.json();
+            if (data && data.length > 0) {
+                const replacements = data.slice(0, 5).map(item => ({ value: item.word }));
+
+                const regex = new RegExp(`\\b${word}\\b`, 'gi');
+                let match;
+                while ((match = regex.exec(text)) !== null) {
+                    vocabMatches.push({
+                        rule: {
+                            id: 'VOCAB_REPETITION',
+                            issueType: 'vocabulary',
+                            description: 'Vocabulary Repetition',
+                            category: { id: 'VOCABULARY', name: 'Vocabulary' }
+                        },
+                        message: `The word "${word}" is repeated. Consider using a synonym to improve variety.`,
+                        replacements: replacements,
+                        offset: match.index,
+                        length: word.length,
+                        chosenReplacement: null,
+                        context: {
+                            text: text.substring(Math.max(0, match.index - 20), Math.min(text.length, match.index + word.length + 20)),
+                            offset: Math.min(match.index, 20),
+                            length: word.length
+                        }
+                    });
+                }
+            }
+        } catch (e) {
+            console.error('Synonym fetch failed', e);
+        }
+    }
+    return vocabMatches;
+}
 
 // Theme Toggle
 themeToggle.addEventListener('click', () => {
@@ -46,9 +113,15 @@ function updateStats() {
     readTime.textContent = `${minutes} min`;
 
     if (words.length > 0) {
-        const uniqueWords = new Set(words).size;
-        const score = Math.round((uniqueWords / words.length) * 100);
+        const score = calculateVocabScore(text);
         vocabScore.textContent = `${score}%`;
+
+        // Visual feedback for low vocabulary
+        if (score < 90) {
+            vocabScore.parentElement.classList.add('stat-card-warning');
+        } else {
+            vocabScore.parentElement.classList.remove('stat-card-warning');
+        }
 
         // Readability Score (Flesch Reading Ease)
         const sents = sentences.length || 1;
@@ -108,6 +181,15 @@ async function checkGrammar() {
             ...match,
             chosenReplacement: null
         }));
+
+        // Vocabulary Improvement Logic
+        if (language.startsWith('en')) {
+            const score = calculateVocabScore(text);
+            if (score > 0 && score < 90) {
+                const vocabMatches = await getVocabImprovements(text);
+                currentMatches = [...currentMatches, ...vocabMatches];
+            }
+        }
         
         displayResults(text);
     } catch (error) {
